@@ -127,12 +127,7 @@ let
         }];
         specialArgs = nixosSpecialArgs // specialArgs;
       }).config;
-    in
-    {
-      ${host.output}.${reverseDomainName} = host.builder ({
-        inherit (host) system;
-        modules = [
-          ({ pkgs, lib, options, config, ... }: {
+      modules = [({ pkgs, lib, options, config, ... }: {
             # 'mkMerge` to separate out each part into its own module
             _type = "merge";
             contents = [
@@ -183,13 +178,25 @@ let
             ];
           })
         ] ++ host.modules;
-        inherit specialArgs;
+    in
+    {
+      ${host.output}.${reverseDomainName} = host.builder ({
+        inherit (host) system;
       } // (optionalAttrs (host.output == "darwinConfigurations") {
         inherit inputs;
         pkgs = selectedNixpkgs;
       }) // (optionalAttrs (host.output == "nixosConfigurations") {
         inherit lib baseModules;
         specialArgs = nixosSpecialArgs // specialArgs;
+      }) // (optionalAttrs (host.output == "nixOnDroidConfigurations") {
+        config = {
+          imports = modules;
+        };
+        extraSpecialArgs = specialArgs;
+        pkgs = selectedNixpkgs;
+      }) // (optionalAttrs (host.output != "nixOnDroidConfigurations") {
+        inherit modules;
+        inherit specialArgs;
       }));
     }
   );
