@@ -62,7 +62,7 @@ let
     , specialArgs ? { }
     }: {
       inherit channelName system output builder extraArgs specialArgs;
-      modules = modules ++ [ ./options.nix ];
+      modules = modules ++ (if output != "homeConfigurations" then [ ./options.nix ] else []);
     };
 
   optionalAttrs = check: value: if check then value else { };
@@ -180,9 +180,9 @@ let
         ] ++ host.modules;
     in
     {
-      ${host.output}.${reverseDomainName} = host.builder ({
+      ${host.output}.${reverseDomainName} = host.builder ((optionalAttrs (host.output != "homeConfigurations") {
         inherit (host) system;
-      } // (optionalAttrs (host.output == "darwinConfigurations") {
+      }) // (optionalAttrs (host.output == "darwinConfigurations") {
         inherit inputs;
         pkgs = selectedNixpkgs;
       }) // (optionalAttrs (host.output == "nixosConfigurations") {
@@ -194,7 +194,11 @@ let
         };
         extraSpecialArgs = specialArgs;
         pkgs = selectedNixpkgs;
-      }) // (optionalAttrs (host.output != "nixOnDroidConfigurations") {
+      }) // (optionalAttrs (host.output == "homeConfigurations") {
+        inherit modules;
+        extraSpecialArgs = specialArgs;
+        pkgs = selectedNixpkgs;
+      }) // (optionalAttrs (host.output != "nixOnDroidConfigurations" && host.output != "homeConfigurations") {
         inherit modules;
         inherit specialArgs;
       }));
